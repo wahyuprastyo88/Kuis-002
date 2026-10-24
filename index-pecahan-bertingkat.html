@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuis Matematika LOTS dan MOTS</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f3f6fb; color: #1f2937; }
+  .container { width: min(760px, 94%); margin: 28px auto; }
+  .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 6px 24px rgba(15,23,42,.08); }
+  h1 { margin: 0 0 8px; font-size: 1.65rem; color: #173b70; }
+  .sub { color: #64748b; margin: 0 0 22px; line-height: 1.5; }
+  label { display:block; font-weight: 700; margin: 14px 0 6px; }
+  input[type="text"] { width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:9px; font-size:1rem; }
+  button { border:0; border-radius:9px; padding:12px 18px; font-size:1rem; font-weight:700; cursor:pointer; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .primary { background:#2459a9; color:white; }
+  .secondary { background:#e2e8f0; color:#1e293b; }
+  .actions { display:flex; justify-content:space-between; gap:10px; margin-top:22px; }
+  .actions button { flex:1; }
+  .hidden { display:none !important; }
+  .progress-row { display:flex; justify-content:space-between; gap:12px; color:#64748b; font-size:.92rem; margin-bottom:10px; }
+  .progress { height:8px; background:#e2e8f0; border-radius:20px; overflow:hidden; margin-bottom:22px; }
+  .bar { height:100%; width:0; background:#2459a9; transition:width .2s; }
+  .tag { display:inline-block; background:#e8f0ff; color:#2459a9; border-radius:20px; padding:5px 10px; font-size:.82rem; font-weight:700; margin-bottom:12px; }
+  .question { font-size:1.15rem; line-height:1.65; font-weight:700; white-space:pre-line; margin:0 0 18px; }
+  .options { display:grid; gap:10px; }
+  .option { display:flex; align-items:flex-start; gap:10px; border:1px solid #cbd5e1; border-radius:10px; padding:13px; cursor:pointer; line-height:1.5; }
+  .option:hover { background:#f8fafc; }
+  .option input { margin-top:4px; }
+  .option.selected { border-color:#2459a9; background:#eff6ff; }
+  .note { color:#64748b; font-size:.9rem; line-height:1.5; }
+  .result { text-align:center; }
+  .score { font-size:3rem; color:#2459a9; font-weight:800; margin:14px 0; }
+  .result-list { text-align:left; margin-top:24px; }
+  .review-item { padding:14px 0; border-bottom:1px solid #e2e8f0; line-height:1.5; }
+  .fraction { display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; line-height:1.05; font-size:.92em; margin:0 .08em; }
+  .fraction .numerator { border-bottom:1px solid currentColor; padding:0 .12em .08em; }
+  .fraction .denominator { padding:.08em .12em 0; }
+  .mixed-number { white-space:nowrap; display:inline-flex; align-items:center; gap:.12em; }
+  .correct { color:#15803d; font-weight:700; }
+  .wrong { color:#b91c1c; font-weight:700; }
+  @media (max-width:520px) { .card{padding:18px;} h1{font-size:1.4rem;} .question{font-size:1.05rem;} .actions{flex-direction:column-reverse;} }
+</style>
+</head>
+<body>
+<div class="container">
+  <section id="start" class="card">
+    <h1>Kuis Matematika</h1>
+    <p class="sub">40 soal pilihan ganda: 20 soal LOTS dan 20 soal MOTS. Kerjakan setiap soal secara berurutan. Nilai hanya ditampilkan di akhir kuis dan tidak dikirim atau disimpan ke Google Sheets.</p>
+    <label for="nama">Nama siswa</label>
+    <input id="nama" type="text" maxlength="80" placeholder="Masukkan nama" autocomplete="name">
+    <label for="kelas">Kelas</label>
+    <input id="kelas" type="text" maxlength="40" placeholder="Contoh: VIII A">
+    <div class="actions"><button id="startBtn" class="primary">Mulai Kuis</button></div>
+  </section>
+
+  <section id="quiz" class="card hidden">
+    <div class="progress-row"><span id="sectionLabel">LOTS</span><span id="progressLabel">Soal 1 dari 40</span></div>
+    <div class="progress"><div id="bar" class="bar"></div></div>
+    <div id="tag" class="tag">LOTS · Nomor 1–20</div>
+    <p id="question" class="question"></p>
+    <div id="options" class="options"></div>
+    <p class="note">Pilih satu jawaban. Jawaban dapat diubah sebelum kamu menekan tombol berikutnya.</p>
+    <div class="actions">
+      <button id="prevBtn" class="secondary">Sebelumnya</button>
+      <button id="nextBtn" class="primary">Berikutnya</button>
+    </div>
+  </section>
+
+  <section id="result" class="card result hidden">
+    <h1>Kuis Selesai!</h1>
+    <p id="studentLine" class="sub"></p>
+    <div id="score" class="score">0</div>
+    <p id="summary"></p>
+    <div class="actions"><button id="reviewBtn" class="secondary">Lihat Pembahasan</button><button id="retryBtn" class="primary">Ulangi Kuis</button></div>
+    <div id="review" class="result-list hidden"></div>
+  </section>
+</div>
+<script>
+const questions = [
+{section:"LOTS",q:"Hasil dari 24 − 4 × 5 adalah ....",o:["4","20","100","80"],a:0,exp:"Kerjakan perkalian terlebih dahulu: 4 × 5 = 20, lalu 24 − 20 = 4."},
+{section:"LOTS",q:"Hasil dari −13 + 21 adalah ....",o:["−34","−8","8","34"],a:2,exp:"−13 + 21 = 21 − 13 = 8."},
+{section:"LOTS",q:"Hasil dari 2/3 + 1/6 adalah ....",o:["3/9","5/6","1/2","3/6"],a:1,exp:"Samakan penyebut: 2/3 = 4/6, sehingga 4/6 + 1/6 = 5/6."},
+{section:"LOTS",q:"Hasil dari 7/8 − 1/4 adalah ....",o:["3/8","5/8","6/8","1/2"],a:1,exp:"Ubah 1/4 menjadi 2/8. Maka 7/8 − 2/8 = 5/8."},
+{section:"LOTS",q:"Nilai dari 3³ adalah ....",o:["9","18","27","81"],a:2,exp:"3³ = 3 × 3 × 3 = 27."},
+{section:"LOTS",q:"Nilai dari √196 adalah ....",o:["12","13","14","16"],a:2,exp:"Karena 14 × 14 = 196, maka √196 = 14."},
+{section:"LOTS",q:"Bangun datar yang mempunyai empat sisi sama panjang, tetapi sudut-sudutnya tidak harus siku-siku, adalah ....",o:["Persegi panjang","Belah ketupat","Trapesium","Segitiga sama sisi"],a:1,exp:"Belah ketupat memiliki empat sisi sama panjang; sudutnya tidak harus siku-siku."},
+{section:"LOTS",q:"Bangun datar yang memiliki tepat satu pasang sisi sejajar menurut definisi trapesium yang digunakan di sekolah adalah ....",o:["Persegi","Layang-layang","Trapesium","Jajar genjang"],a:2,exp:"Trapesium memiliki satu pasang sisi sejajar menurut definisi yang digunakan pada soal."},
+{section:"LOTS",q:"Sebuah persegi panjang memiliki panjang 12 cm dan lebar 5 cm. Luasnya adalah ....",o:["17 cm²","34 cm²","60 cm²","120 cm²"],a:2,exp:"Luas persegi panjang = panjang × lebar = 12 × 5 = 60 cm²."},
+{section:"LOTS",q:"Sebuah persegi memiliki panjang sisi 9 cm. Kelilingnya adalah ....",o:["18 cm","27 cm","36 cm","81 cm"],a:2,exp:"Keliling persegi = 4 × sisi = 4 × 9 = 36 cm."},
+{section:"LOTS",q:"FPB dari 28 dan 42 adalah ....",o:["7","14","21","28"],a:1,exp:"Faktor persekutuan terbesar 28 dan 42 adalah 14."},
+{section:"LOTS",q:"KPK dari 8 dan 10 adalah ....",o:["20","30","40","80"],a:2,exp:"Kelipatan persekutuan terkecil 8 dan 10 adalah 40."},
+{section:"LOTS",q:"Sebuah denah memiliki skala 1 : 50.000. Jarak sebenarnya yang diwakili oleh jarak 1 cm pada denah adalah ....",o:["50 meter","500 meter","5 kilometer","50 kilometer"],a:1,exp:"1 cm pada denah = 50.000 cm = 500 m."},
+{section:"LOTS",q:"Perbandingan jumlah kelereng merah dan biru adalah 4 : 7. Jumlah seluruh bagian dalam perbandingan tersebut adalah ....",o:["3","4","7","11"],a:3,exp:"Jumlah bagian = 4 + 7 = 11."},
+{section:"LOTS",q:"Pada titik koordinat (6, 5), angka 5 menunjukkan posisi pada ....",o:["Sumbu X","Sumbu Y","Titik pusat","Garis diagonal"],a:1,exp:"Dalam pasangan koordinat (x, y), angka kedua menunjukkan posisi pada sumbu Y."},
+{section:"LOTS",q:"Sebuah sepatu berharga Rp80.000 mendapat diskon 25%. Besar diskon tersebut adalah ....",o:["Rp10.000","Rp15.000","Rp20.000","Rp25.000"],a:2,exp:"Diskon = 25% × Rp80.000 = Rp20.000."},
+{section:"LOTS",q:"Seorang pedagang membeli sebuah tas seharga Rp45.000 dan menjualnya seharga Rp52.000. Pedagang tersebut memperoleh ....",o:["Untung Rp7.000","Rugi Rp7.000","Untung Rp45.000","Rugi Rp52.000"],a:0,exp:"Untung = harga jual − harga beli = Rp52.000 − Rp45.000 = Rp7.000."},
+{section:"LOTS",q:"Perhatikan data: 4, 6, 6, 7, 8, 9. Modus data tersebut adalah ....",o:["4","6","7","9"],a:1,exp:"Modus adalah nilai yang paling sering muncul. Angka 6 muncul dua kali."},
+{section:"LOTS",q:"Sebuah kubus memiliki panjang rusuk 4 cm. Luas permukaannya adalah ....",o:["16 cm²","64 cm²","96 cm²","128 cm²"],a:2,exp:"Luas permukaan kubus = 6 × rusuk² = 6 × 4² = 96 cm²."},
+{section:"LOTS",q:"Sebuah balok memiliki panjang 5 cm, lebar 4 cm, dan tinggi 3 cm. Luas permukaannya adalah ....",o:["47 cm²","60 cm²","94 cm²","120 cm²"],a:2,exp:"Luas permukaan = 2(pl + pt + lt) = 2(20 + 15 + 12) = 94 cm²."},
+{section:"MOTS",q:"Suhu pagi hari adalah −12°C. Suhu naik 5°C setiap jam selama 4 jam. Suhu setelah 4 jam adalah ....",o:["−32°C","−8°C","8°C","20°C"],a:2,exp:"Suhu akhir = −12 + (4 × 5) = −12 + 20 = 8°C."},
+{section:"MOTS",q:"Ibu mempunyai 5/6 kg gula. Ibu membeli lagi 3/4 kg, kemudian menggunakan 1/3 kg. Sisa gula Ibu adalah ....",o:["1 1/4 kg","1 1/2 kg","5/12 kg","1 3/4 kg"],a:0,exp:"5/6 + 3/4 − 1/3 = 10/12 + 9/12 − 4/12 = 15/12 = 1 1/4 kg."},
+{section:"MOTS",q:"Hasil dari 3² + √64 adalah ....",o:["15","16","17","18"],a:2,exp:"3² = 9 dan √64 = 8, sehingga 9 + 8 = 17."},
+{section:"MOTS",q:"Sebuah taman berbentuk persegi memiliki luas 196 m². Panjang pagar yang diperlukan untuk mengelilinginya adalah ....",o:["14 m","28 m","56 m","196 m"],a:2,exp:"Sisi = √196 = 14 m. Keliling = 4 × 14 = 56 m."},
+{section:"MOTS",q:"Sebuah bangun datar memiliki dua pasang sisi yang sama panjang dan berdekatan serta sepasang sudut berhadapan yang sama besar. Bangun tersebut adalah ....",o:["Persegi panjang","Layang-layang","Jajar genjang","Trapesium"],a:1,exp:"Layang-layang memiliki dua pasang sisi sama panjang yang berdekatan dan sepasang sudut berhadapan sama besar."},
+{section:"MOTS",q:"Sebuah segitiga memiliki alas 15 cm dan tinggi 10 cm. Luas segitiga tersebut adalah ....",o:["50 cm²","75 cm²","100 cm²","150 cm²"],a:1,exp:"Luas segitiga = 1/2 × alas × tinggi = 1/2 × 15 × 10 = 75 cm²."},
+{section:"MOTS",q:"Pak Budi mempunyai 42 jeruk dan 56 apel. Buah-buahan dibagikan ke keranjang dengan jumlah setiap jenis buah sama pada tiap keranjang, tanpa sisa. Jumlah keranjang terbanyak adalah ....",o:["7 keranjang","8 keranjang","14 keranjang","21 keranjang"],a:2,exp:"Jumlah keranjang terbanyak adalah FPB(42, 56) = 14."},
+{section:"MOTS",q:"Lampu A berkedip setiap 6 detik dan lampu B setiap 9 detik. Jika keduanya berkedip bersama, keduanya akan berkedip bersama lagi setelah ....",o:["12 detik","18 detik","27 detik","54 detik"],a:1,exp:"KPK dari 6 dan 9 adalah 18 detik."},
+{section:"MOTS",q:"Jarak dua desa pada peta adalah 6 cm. Jika skala peta 1 : 200.000, jarak sebenarnya adalah ....",o:["1,2 km","6 km","12 km","120 km"],a:2,exp:"6 × 200.000 = 1.200.000 cm = 12 km."},
+{section:"MOTS",q:"Perbandingan siswa laki-laki dan perempuan adalah 2 : 3. Jika jumlah seluruh siswa 35 orang, jumlah siswa perempuan adalah ....",o:["14 orang","15 orang","21 orang","28 orang"],a:2,exp:"Jumlah bagian = 2 + 3 = 5. Setiap bagian = 35 ÷ 5 = 7, sehingga perempuan = 3 × 7 = 21."},
+{section:"MOTS",q:"Titik B berada pada koordinat (3, 7). Titik digeser 5 satuan ke kanan dan 4 satuan ke bawah. Koordinat akhirnya adalah ....",o:["(8, 11)","(8, 3)","(2, 3)","(3, 8)"],a:1,exp:"Ke kanan menambah koordinat x: 3 + 5 = 8. Ke bawah mengurangi y: 7 − 4 = 3. Hasilnya (8, 3)."},
+{section:"MOTS",q:"Sebuah jaket berharga Rp240.000 mendapat diskon 20%. Harga setelah diskon adalah ....",o:["Rp48.000","Rp180.000","Rp192.000","Rp220.000"],a:2,exp:"Diskon = 20% × Rp240.000 = Rp48.000. Harga akhir = Rp240.000 − Rp48.000 = Rp192.000."},
+{section:"MOTS",q:"Seorang pedagang membeli jam tangan seharga Rp160.000 dan menjualnya Rp200.000. Persentase keuntungan terhadap harga beli adalah ....",o:["20%","25%","30%","40%"],a:1,exp:"Untung = Rp40.000. Persentase untung = 40.000 ÷ 160.000 × 100% = 25%."},
+{section:"MOTS",q:"Seorang pedagang membeli kursi seharga Rp150.000, kemudian menjualnya Rp127.500. Persentase kerugian terhadap harga beli adalah ....",o:["10%","12%","15%","20%"],a:2,exp:"Rugi = Rp22.500. Persentase rugi = 22.500 ÷ 150.000 × 100% = 15%."},
+{section:"MOTS",q:"Nilai ulangan lima siswa adalah 7, 8, 9, 6, dan 10. Rata-rata nilai mereka adalah ....",o:["7","8","9","10"],a:1,exp:"Rata-rata = (7 + 8 + 9 + 6 + 10) ÷ 5 = 40 ÷ 5 = 8."},
+{section:"MOTS",q:"Data jumlah pensil enam siswa adalah 4, 6, 7, 8, 10, 13. Median data tersebut adalah ....",o:["7","7,5","8","9"],a:1,exp:"Karena ada enam data, median adalah rata-rata data ke-3 dan ke-4: (7 + 8) ÷ 2 = 7,5."},
+{section:"MOTS",q:"Sebuah balok memiliki panjang 8 cm, lebar 5 cm, dan tinggi 4 cm. Luas permukaannya adalah ....",o:["80 cm²","144 cm²","184 cm²","200 cm²"],a:2,exp:"Luas permukaan = 2(8×5 + 8×4 + 5×4) = 2(40 + 32 + 20) = 184 cm²."},
+{section:"MOTS",q:"Sebuah kubus memiliki rusuk 6 cm. Jika bagian bawah menempel pada lantai dan tidak dihitung, luas permukaan yang terlihat adalah ....",o:["144 cm²","180 cm²","216 cm²","36 cm²"],a:1,exp:"Lima sisi terlihat. Luasnya = 5 × 6² = 5 × 36 = 180 cm²."},
+{section:"MOTS",q:"Sebuah toko memiliki 60 kg beras. Pada pagi hari terjual 1/3 dari seluruh beras, lalu sore hari terjual 15 kg. Sisa beras adalah ....",o:["15 kg","20 kg","25 kg","30 kg"],a:2,exp:"Pagi terjual 1/3 × 60 = 20 kg. Sisa = 60 − 20 − 15 = 25 kg."},
+{section:"MOTS",q:"Sebuah taman berbentuk persegi memiliki keliling 64 m. Di dalamnya dibuat kolam persegi dengan sisi 6 m. Luas taman yang tidak digunakan untuk kolam adalah ....",o:["220 m²","240 m²","256 m²","292 m²"],a:0,exp:"Sisi taman = 64 ÷ 4 = 16 m, luas taman = 256 m². Luas kolam = 6² = 36 m². Sisa luas = 256 − 36 = 220 m²."}
+];
+
+let current = 0;
+let answers = Array(questions.length).fill(null);
+let studentName = "";
+let studentClass = "";
+
+const startSection = document.getElementById("start");
+const quizSection = document.getElementById("quiz");
+const resultSection = document.getElementById("result");
+const questionEl = document.getElementById("question");
+const optionsEl = document.getElementById("options");
+
+document.getElementById("startBtn").addEventListener("click", () => {
+  studentName = document.getElementById("nama").value.trim();
+  studentClass = document.getElementById("kelas").value.trim();
+  if (!studentName || !studentClass) {
+    alert("Silakan isi nama dan kelas terlebih dahulu.");
+    return;
+  }
+  startSection.classList.add("hidden");
+  quizSection.classList.remove("hidden");
+  renderQuestion();
+});
+
+function formatMathText(value) {
+  // Escape ordinary text first, then render numeric fractions as stacked HTML fractions.
+  let text = String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  text = text.replace(/(\d+)\s+(\d+)\/(\d+)/g, '<span class="mixed-number">$1<span class="fraction"><span class="numerator">$2</span><span class="denominator">$3</span></span></span>');
+  text = text.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><span class="numerator">$1</span><span class="denominator">$2</span></span>');
+  return text;
+}
+
+function renderQuestion() {
+  const item = questions[current];
+  document.getElementById("sectionLabel").textContent = item.section;
+  document.getElementById("progressLabel").textContent = `Soal ${current + 1} dari ${questions.length}`;
+  document.getElementById("bar").style.width = `${((current + 1) / questions.length) * 100}%`;
+  document.getElementById("tag").textContent = item.section === "LOTS" ? "LOTS · Nomor 1–20" : "MOTS · Nomor 21–40";
+  questionEl.innerHTML = formatMathText(`${current + 1}. ${item.q}`);
+  optionsEl.innerHTML = "";
+  item.o.forEach((option, index) => {
+    const label = document.createElement("label");
+    label.className = "option" + (answers[current] === index ? " selected" : "");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "answer";
+    radio.value = index;
+    radio.checked = answers[current] === index;
+    radio.addEventListener("change", () => {
+      answers[current] = index;
+      renderQuestion();
+    });
+    const text = document.createElement("span");
+    text.innerHTML = formatMathText(`${String.fromCharCode(65 + index)}. ${option}`);
+    label.append(radio, text);
+    optionsEl.appendChild(label);
+  });
+  document.getElementById("prevBtn").disabled = current === 0;
+  document.getElementById("nextBtn").textContent = current === questions.length - 1 ? "Selesai" : "Berikutnya";
+}
+
+document.getElementById("prevBtn").addEventListener("click", () => {
+  if (current > 0) { current--; renderQuestion(); window.scrollTo({top:0, behavior:"smooth"}); }
+});
+document.getElementById("nextBtn").addEventListener("click", () => {
+  if (answers[current] === null) {
+    alert("Pilih salah satu jawaban sebelum melanjutkan.");
+    return;
+  }
+  if (current < questions.length - 1) {
+    current++;
+    renderQuestion();
+    window.scrollTo({top:0, behavior:"smooth"});
+  } else {
+    showResult();
+  }
+});
+
+function showResult() {
+  const correct = answers.reduce((sum, answer, index) => sum + (answer === questions[index].a ? 1 : 0), 0);
+  const score = Math.round(correct / questions.length * 100);
+  quizSection.classList.add("hidden");
+  resultSection.classList.remove("hidden");
+  document.getElementById("studentLine").textContent = `${studentName} · Kelas ${studentClass}`;
+  document.getElementById("score").textContent = `${score}`;
+  document.getElementById("summary").textContent = `Jawaban benar: ${correct} dari ${questions.length}. Jawaban salah: ${questions.length - correct}. Nilai ditampilkan hanya di halaman ini dan tidak dikirim ke mana pun.`;
+  buildReview();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function buildReview() {
+  const review = document.getElementById("review");
+  review.innerHTML = "<h2>Pembahasan Jawaban</h2>";
+  questions.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "review-item";
+    const isCorrect = answers[index] === item.a;
+    const heading = document.createElement("div");
+    heading.className = isCorrect ? "correct" : "wrong";
+    heading.innerHTML = formatMathText(`${index + 1}. ${isCorrect ? "Benar" : "Salah"} — Jawaban benar: ${String.fromCharCode(65 + item.a)}. ${item.o[item.a]}`);
+    const stem = document.createElement("div");
+    stem.innerHTML = formatMathText(item.q);
+    const explanation = document.createElement("div");
+    explanation.innerHTML = formatMathText(item.exp);
+    div.append(heading, stem, explanation);
+    review.appendChild(div);
+  });
+}
+document.getElementById("reviewBtn").addEventListener("click", () => {
+  const review = document.getElementById("review");
+  review.classList.toggle("hidden");
+  document.getElementById("reviewBtn").textContent = review.classList.contains("hidden") ? "Lihat Pembahasan" : "Sembunyikan Pembahasan";
+});
+document.getElementById("retryBtn").addEventListener("click", () => {
+  current = 0;
+  answers = Array(questions.length).fill(null);
+  resultSection.classList.add("hidden");
+  document.getElementById("review").classList.add("hidden");
+  startSection.classList.remove("hidden");
+  document.getElementById("nama").value = studentName;
+  document.getElementById("kelas").value = studentClass;
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+</script>
+</body>
+</html>
